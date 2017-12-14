@@ -1,102 +1,64 @@
-<IfModule mod_ssl.c> 
-<VirtualHost *:8443>
+#<IfModule mod_ssl.c> 
+<IfModule mod_proxy.c>
+mod_proxy.c
+<VirtualHost *:8080>
         ServerAdmin webmaster@localhost
-        ServerName robotics.int-rt.corp.doosan.com
+        ServerName ocp-console.ext-rt.doosan.com
  
-        SSLEngine On
+        #SSLEngine On
         #ReverseProxy를 사용하기 위함.
         ProxyRequests On
         ProxyPreserveHost On
         RewriteEngine On
-        SSLProxyEngine On
-        SSLProxyVerify None
+        #SSLProxyEngine On
+        #SSLProxyVerify None
         DocumentRoot /opt/app-root/src
  
         #ErrorLog |/usr/bin/cat
         #TransferLog |/usr/bin/cat
         #LogLevel warn
  
-        SSLCertificateFile /opt/app-root/src/certs/robotics.int-rt.corp.doosan.com.cert.pem
-        SSLCertificateKeyFile /opt/app-root/src/certs/robotics.int-rt.corp.doosan.com.key.pem
+        #SSLCertificateFile /opt/app-root/src/certs/robotics.int-rt.corp.doosan.com.cert.pem
+        #SSLCertificateKeyFile /opt/app-root/src/certs/robotics.int-rt.corp.doosan.com.key.pem
  
         #루트CA의 인증서 경로
-        SSLCACertificatePath /opt/app-root/src/certs/
-        SSLCACertificateFile /opt/app-root/src/certs/root-ca.cert.pem
+        #SSLCACertificatePath /opt/app-root/src/certs/
+        #SSLCACertificateFile /opt/app-root/src/certs/root-ca.cert.pem
   
         #CRL경로 
-        SSLCARevocationPath /opt/app-root/src/certs/
-        SSLCARevocationFile /opt/app-root/src/certs/intermed-ca.crl
+        #SSLCARevocationPath /opt/app-root/src/certs/
+        #SSLCARevocationFile /opt/app-root/src/certs/intermed-ca.crl
   
         #사용자 인증서 점검
-        SSLVerifyClient require
-        SSLVerifyDepth 2
+        #SSLVerifyClient require
+        #SSLVerifyDepth 2
   
         #인증서 폐기 목록 검증하는 부분
-        SSLCARevocationCheck leaf
+        #SSLCARevocationCheck leaf
  
         #jboss 인증서 웹페이지 연결
-        ProxyPass / https://dra-ca.ext-rt.doosan.com
-        ProxyPassReverse / https://dra-ca.ext-rt.doosan.com
+        #ProxyPass / https://dra-ca.ext-rt.doosan.com
+        #ProxyPassReverse / https://dra-ca.ext-rt.doosan.com
+        ProxyPass / https://mdswitch.corp.doosan.com
+        ProxyPassReverse /https://mdswitch.corp.doosan.com
         
         #Client certificate data header
-        RequestHeader set SSL_CLIENT_S_DN    ""
-        RequestHeader set SSL_CLIENT_I_DN    ""
-        RequestHeader set SSL_SERVER_S_DN_OU ""
-        RequestHeader set SSL_CLIENT_VERIFY  ""
-        RequestHeader set SSL_CLIENT_S_DN_CN ""
+        #RequestHeader set SSL_CLIENT_S_DN    ""
+        #RequestHeader set SSL_CLIENT_I_DN    ""
+        #RequestHeader set SSL_SERVER_S_DN_OU ""
+        #RequestHeader set SSL_CLIENT_VERIFY  ""
+        #RequestHeader set SSL_CLIENT_S_DN_CN ""
         #인증서 DN의 OU 기반 redirect
-        RewriteCond %{SSL:SSL_CLIENT_S_DN_OU} ^Admin [NC]
-        RewriteCond %{REQUEST_URI} ^/$
-        RewriteRule ^(.*)$ https://dra-ca.ext-rt.doosan.com/Admin/ [L]
+        #RewriteCond %{SSL:SSL_CLIENT_S_DN_OU} ^Admin [NC]
+        #RewriteCond %{REQUEST_URI} ^/$
+        #RewriteRule ^(.*)$ https://dra-ca.ext-rt.doosan.com/Admin/ [L]
         #인증서 DN의 OU 기반 redirect
-        RewriteCond %{SSL:SSL_CLIENT_S_DN_OU} ^Service [NC]
-        RewriteCond %{REQUEST_URI} ^/$
-        RewriteRule ^(.*)$ https://dra-ca.ext-rt.doosan.com/Service/ [L]
+        #RewriteCond %{SSL:SSL_CLIENT_S_DN_OU} ^Service [NC]
+        #RewriteCond %{REQUEST_URI} ^/$
+        #RewriteRule ^(.*)$ https://dra-ca.ext-rt.doosan.com/Service/ [L]
         
  
-         <Location /Admin/>
-                Require all granted
-                SSLOptions +StdEnvVars +ExportCertData
-                SSLVerifyClient require
-                SSLRequire  %{SSL_CLIENT_S_DN_OU} in {"Admin", "IT Admin"}
-                RequestHeader set SSL_CLIENT_S_DN "%{SSL_CLIENT_S_DN}s"
-                RequestHeader set SSL_CLIENT_I_DN "%{SSL_CLIENT_I_DN}s"
-                RequestHeader set SSL_SERVER_S_DN_OU "%{SSL_SERVER_S_DN_OU}s"
-                RequestHeader set SSL_CLIENT_VERIFY "%{SSL_CLIENT_VERIFY}s"
-                RequestHeader set SSL_CLIENT_S_DN_CN "%{SSL_CLIENT_S_DN_CN}s"
-                ProxyPass https://dra-ca.ext-rt.doosan.com/Admin/
-                ProxyPassReverse  https://dra-ca.ext-rt.doosan.com/Admin/
-        </Location>
-        <Location /Service/>
-                Require all granted
-                SSLOptions +StdEnvVars +ExportCertData
-                SSLVerifyClient require
-                SSLRequire %{SSL_CLIENT_S_DN_OU} in {"Service", "QA"}
-                RequestHeader set SSL_CLIENT_S_DN "%{SSL_CLIENT_S_DN}s"
-                RequestHeader set SSL_CLIENT_I_DN "%{SSL_CLIENT_I_DN}s"
-                RequestHeader set SSL_SERVER_S_DN_OU "%{SSL_SERVER_S_DN_OU}s"
-                RequestHeader set SSL_CLIENT_VERIFY "%{SSL_CLIENT_VERIFY}s"
-                RequestHeader set SSL_CLIENT_S_DN_CN "%{SSL_CLIENT_S_DN_CN}s"
-                ProxyPass https://dra-ca.ext-rt.doosan.com/Service/
-                ProxyPassReverse  https://dra-ca.ext-rt.doosan.com/Service/
-        </Location>
- 
-        #인증서 검증에 실패하였을 경우, 프록시 접근 Deny
-        <Proxy *>
-            Order deny,allow
-            Allow from all
-        </Proxy>
- 
-        SSLOptions +StdEnvVars
-        <FilesMatch "\.(cgi|shtml|phtml|php)$">
-                SSLOptions +StdEnvVars
-        </FilesMatch>
-        <Directory /usr/lib/cgi-bin>
-                SSLOptions +StdEnvVars
-        </Directory>
-         BrowserMatch "MSIE [2-6]" \
-                nokeepalive ssl-unclean-shutdown \
-                downgrade-1.0 force-response-1.0
+
 </VirtualHost>
  
 </IfModule>
